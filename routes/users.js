@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
-import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
+import {hashPassword, comparePassword} from '../lib/utility.js'
 
 //Prisma setup
 const router = express.Router();
@@ -38,7 +38,9 @@ router.post('/signup', upload.none(), async (req, res) => {
     try {
       // Check if email already exists
       const existingUser = await prisma.customer.findUnique({
-        where: { email },
+        where: { 
+          email: email, 
+        }
       });
   
       if (existingUser) {
@@ -47,8 +49,7 @@ router.post('/signup', upload.none(), async (req, res) => {
       }
   
       // Hash the password using bcrypt
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
+      const hashedPassword = await hashPassword(password);
   
       // Create the user in the database
       const newUser = await prisma.customer.create({
@@ -68,14 +69,6 @@ router.post('/signup', upload.none(), async (req, res) => {
   });
 
 // User login route
-
-//temp users for testing
-//johndoe@example.com
-//janedoe@example.com
-
-//temp passwords for testing
-//securePassword123
-//securePassword123456
 
 router.post('/login', upload.none(), async (req, res) => {
     const { email, password } = req.body;
@@ -97,15 +90,19 @@ router.post('/login', upload.none(), async (req, res) => {
       }
   
       // Step 4: Compare the hashed password in the database with the provided password
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+      const isPasswordValid = await comparePassword(password, user.password);
   
       if (!isPasswordValid) {
         // Step 5: If the password is invalid, return 401 Unauthorized
         return res.status(401).json({ error: 'Invalid password' });
       }
+      // Step 6: Setup User Session Data
+      req.session.email = user.email;
+      req.session.user_id = user.customer_id;
+      req.session.name = user.first_name+' '+user.last_name;
   
-      // Step 6: If the login is successful, return the user's email
-      res.status(200).json({ email: user.email });
+      // Step 7: If the login is successful, return the user's email and a success message
+      res.send('Login Successful')
   
     } catch (error) {
       console.error(error);
@@ -113,14 +110,26 @@ router.post('/login', upload.none(), async (req, res) => {
     }
   });
 
-// User logout (simplified)
+// User logout
 router.post('/logout', (req, res) => {
-    res.send('Test');
+  req.session.destroy();
+    res.send('Logout Test');
 });
 
-// Get user session (simplified)
-router.get('/getSession', (req, res) => {
-    res.send('Test');
+// Return logged in user
+router.get('/session', (req,res)=> {
+  res.json({'user': req.session.email})
+})
+
+// Get user session
+router.get('/getSession', async (req, res) => {
+  const customerID = req.session.customer_id
+  const customer = await prisma.customer.findUnique({
+    where: {
+      id: customerID
+    }
+  })
+    res.json(customer);
 });
 
 export default router;

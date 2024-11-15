@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import session from 'express-session';
 import purchaseRouting from './routes/products.js';
 import usersRouting from './routes/users.js';
 
@@ -10,7 +11,19 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(express.static('public'));
 app.use(cors({
-    origin: 'http://localhost:5173'
+    origin: 'http://localhost:5173',
+    credentials: true //allow cookies
+}))
+app.use(session({
+    secret:'gndoa#@ghiozaejhfr^&ea',
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        httpOnly: true, 
+        secure: false, //true if using HTTPS
+        sameSite: 'lax', //should be none if client and server are on different origins
+        maxAge: 3600000 // 1hr
+    }
 }))
 
 // Test route

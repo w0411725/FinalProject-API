@@ -27,17 +27,63 @@ const upload = multer({ storage: storage});
 
 // Get all products
 router.get('/all', async (req, res) => {
-    res.send('Test');
+    const products = await prisma.product.findMany();
+    res.send(products);
 });
 
 // Get product by ID
 router.get('/:id', async (req, res) => {
-    res.send('Test');
+    const id = req.params.id;
+
+    if(!id||isNaN(id)){
+        return res.status(400).json({ message: 'Invalid product ID.'});
+    }
+    try{
+        const product = await prisma.product.findUnique({
+            where: {
+                product_id: parseInt(id)
+            }
+        });
+        res.json(product);
+    }
+    catch(error){
+        return res.status(404).json({ message: 'ID not found'})
+    }
 });
 
-// Handle purchase (Example)
-router.post('/purchase', async (req, res) => {
-    res.send('Test');
+// Purchase product by ID
+router.post('/purchase/:id', async (req, res) => {
+    const id = req.params.id;
+
+    if (!id || isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid product ID.' });
+    }
+    try {
+        const product = await prisma.product.findUnique({
+            where: {
+                product_id: parseInt(id),
+            },
+        });
+
+        // TODO:
+        // 1) Check current product availability
+        // 2) Deduct stock from inventory
+        // 3) Log a purchase or create an order record
+
+        // Respond with purchase confirmation and product details
+        res.status(200).json({
+            message: 'Purchase successful!',
+            product: {
+                id: product.product_id,
+                name: product.name,
+                description: product.description,
+                cost: product.cost,
+                image_filename: product.image_filename,
+            },
+        });
+    } catch (error) {
+        return res.status(404).json({ message: 'ID not found'})
+    }
 });
 
 export default router;

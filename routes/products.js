@@ -74,7 +74,6 @@ router.post('/purchase/:id', async (req, res) => {
         res.status(200).json({
             message: 'Purchase successful!',
             product: {
-                id: product.product_id,
                 name: product.name,
                 description: product.description,
                 cost: product.cost,

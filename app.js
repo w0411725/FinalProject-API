@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
+
 import purchaseRouting from './routes/products.js';
 import usersRouting from './routes/users.js';
 
@@ -27,9 +28,9 @@ app.use(session({
 }))
 
 // Test route
-app.get('/', (req, res) => {
-    res.send('Test');
-  });
+// app.get('/', (req, res) => {
+//     res.send('Test');
+//   });
 
 app.use('/products', purchaseRouting)
 app.use('/users', usersRouting)

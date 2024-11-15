@@ -113,7 +113,7 @@ router.post('/login', upload.none(), async (req, res) => {
 // User logout
 router.post('/logout', (req, res) => {
   req.session.destroy();
-    res.send('Logout Test');
+    res.send('Logout Successful');
 });
 
 // Return logged in user
@@ -124,12 +124,17 @@ router.get('/session', (req,res)=> {
 // Get user session
 router.get('/getSession', async (req, res) => {
   const customerID = req.session.customer_id
-  const customer = await prisma.customer.findUnique({
-    where: {
-      id: customerID
-    }
-  })
-    res.json(customer);
+  try{
+    const customer = await prisma.customer.findUnique({
+      where: {
+        id: customerID
+      }
+    })
+      res.json(customer);
+  }
+catch(error){
+  return res.status(404).json({ message: 'ID not found'})
+}
 });
 
 export default router;

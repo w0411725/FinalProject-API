@@ -1,5 +1,4 @@
 import express from 'express';
-import multer from 'multer';
 import { PrismaClient } from '@prisma/client';
 
 //Prisma setup
@@ -8,80 +7,141 @@ const prisma = new PrismaClient({
     log: ['query', 'info', 'warn', 'error'],
 });
 
-// Multer setup
-const storage = multer.diskStorage({
-    destination: function (req, file, cb){
-        cb(null, 'public/images/'); //save uploaded files in 'public/images' folder
-    },
-    filename: function (req, file, cb){
-        const ext = file.originalname.split('.').pop(); // get file extension
-        const uniqueFilename = Date.now() + '-' + Math.round(Math.random() * 1000) + '.' + ext; // generate unique filename = current timestamp + random number between 0 and 1000
-        cb(null, uniqueFilename);
-    }
-})
-const upload = multer({ storage: storage});
-
 //
 // Routes
 //
 
 // Get all products
 router.get('/all', async (req, res) => {
-    const products = await prisma.product.findMany();
-    res.send(products);
+    try {
+        // Fetch all products from the database
+        const products = await prisma.product.findMany();
+
+        // Return the products as a JSON response
+        res.status(200).json(products);
+        
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch products' });
+    }
 });
 
 // Get product by ID
 router.get('/:id', async (req, res) => {
     const id = req.params.id;
 
-    if(!id||isNaN(id)){
-        return res.status(400).json({ message: 'Invalid product ID.'});
+    // Validate if the ID is a valid integer
+    if (!id || isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid product ID.' });
     }
-    try{
+
+    try {
+        // Retrieve the product from the database
         const product = await prisma.product.findUnique({
             where: {
                 product_id: parseInt(id)
-            }
+            },
         });
-        res.json(product);
-    }
-    catch(error){
-        return res.status(404).json({ message: 'ID not found'})
+
+        // Check if the product exists
+        if (!product) {
+            return res.status(404).json({ message: `Product with ID ${id} not found.` });
+        }
+
+        // Return the product as a JSON response
+        res.status(200).json(product);
+
+    } catch (error) {
+        res.status(500).json({ message: 'Error retrieving product' });
     }
 });
 
 // Purchase product by ID
-router.post('/purchase/:id', async (req, res) => {
-    const id = req.params.id;
-
-    if (!id || isNaN(id)) {
-        return res.status(400).json({ message: 'Invalid product ID.' });
+router.post('/purchase', async (req, res) => {
+    // Check if the user is logged in
+    if (!req.session || !req.session.user_id) {
+        return res.status(401).json({ error: 'Unauthorized: Please log in.' });
     }
+
+    const {
+        street,
+        city,
+        province,
+        country,
+        postal_code,
+        credit_card,
+        credit_expire,
+        credit_cvv,
+        cart,
+        invoice_amt,
+        invoice_tax,
+        invoice_total,
+    } = req.body;
+
+    // Validate input
+    if (!street || !city || !province || !country || !postal_code || !credit_card || !credit_expire || !credit_cvv || !cart || !invoice_amt || !invoice_tax || !invoice_total) {
+        return res.status(400).json({ error: 'All fields are required' });
+    }
+
     try {
-        const product = await prisma.product.findUnique({
-            where: {
-                product_id: parseInt(id),
+        // Parse the cart string into an array of product IDs
+        const cartItems = cart.split(',').map(Number);
+        const productCounts = cartItems.reduce((acc, productId) => {
+            acc[productId] = (acc[productId] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Create a purchase record
+        const customer_id = req.session.user_id;
+        const purchase = await prisma.purchase.create({
+            data: {
+                customer_id,
+                street,
+                city,
+                province,
+                country,
+                postal_code,
+                credit_card,
+                credit_expire,
+                credit_cvv,
+                invoice_amt: parseFloat(invoice_amt),
+                invoice_tax: parseFloat(invoice_tax),
+                invoice_total: parseFloat(invoice_total),
+                order_date: new Date(),
             },
         });
 
-        // TODO:
-        // 1) Check current product availability
-        // 2) Deduct stock from inventory
-        // 3) Log a purchase or create an order record
+        // Create purchase items for each product in the cart
+        const purchaseItems = [];
+        for (const [product_id, quantity] of Object.entries(productCounts)) {
+            // Check if the product exists
+            const product = await prisma.product.findUnique({
+                where: { product_id: parseInt(product_id) },
+            });
 
-        // Respond with purchase confirmation and product details
-        res.status(200).json({
-            message: 'Purchase successful!',
-            product: {
-                name: product.name,
-                description: product.description,
-                cost: product.cost,
-                image_filename: product.image_filename,
-            },
+            if (!product) {
+                return res.status(400).json({ error: `Product ID ${product_id} not found.` });
+            }
+
+            // Create a PurchaseItem entry
+            const purchaseItem = await prisma.purchaseItem.create({
+                data: {
+                    purchase_id: purchase.purchase_id,
+                    product_id: parseInt(product_id),
+                    quantity,
+                },
+            });
+            purchaseItems.push(purchaseItem);
+        }
+
+        // Return a success response
+        res.status(201).json({
+            message: 'Purchase completed successfully!',
+            purchase,
+            items: purchaseItems,
         });
+
     } catch (error) {
-        return res.status(404).json({ message: 'ID not found'})
+        res.status(500).json({ error: 'Failed to complete purchase' });
     }
 });
 

@@ -14,17 +14,48 @@ datasource db {
 }
 
 model Product {
-  product_id     Int      @id @default(autoincrement())
+  product_id     Int       @id @default(autoincrement())
   name           String
   description    String
   cost           Float 
   image_filename String
+  PurchaseItem   PurchaseItem[]
 }
 
 model Customer {
-  customer_id Int     @id @default(autoincrement())
-  email       String  @unique
+  customer_id Int       @id @default(autoincrement())
+  email       String    @unique
   password    String
   first_name  String
   last_name   String
+  Purchase    Purchase[]
+}
+
+model Purchase {
+  purchase_id  Int       @id @default(autoincrement())
+  customer_id  Int
+  street       String
+  city         String
+  province     String
+  country      String
+  postal_code  String
+  credit_card  String
+  credit_expire String
+  credit_cvv   String
+  invoice_amt  Float
+  invoice_tax  Float
+  invoice_total Float
+  order_date   DateTime  @default(now())
+  Customer     Customer  @relation(fields: [customer_id], references: [customer_id])
+  PurchaseItem PurchaseItem[]
+}
+
+model PurchaseItem {
+  purchase_id Int
+  product_id  Int
+  quantity    Int
+  Purchase    Purchase @relation(fields: [purchase_id], references: [purchase_id])
+  Product     Product  @relation(fields: [product_id], references: [product_id])
+
+  @@id([purchase_id, product_id]) // Composite primary key
 }

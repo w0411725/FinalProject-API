@@ -12,7 +12,6 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(express.static('public'));
 app.use(cors({
-    origin: 'http://localhost:5173',
     credentials: true //allow cookies
 }))
 app.use(session({

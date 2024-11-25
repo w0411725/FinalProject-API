@@ -19,7 +19,7 @@ router.get('/all', async (req, res) => {
 
         // Return the products as a JSON response
         res.status(200).json(products);
-        
+
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch products' });
     }
@@ -57,6 +57,7 @@ router.get('/:id', async (req, res) => {
 
 // Purchase product by ID
 router.post('/purchase', async (req, res) => {
+
     // Check if the user is logged in
     if (!req.session || !req.session.user_id) {
         return res.status(401).json({ error: 'Unauthorized: Please log in.' });
@@ -113,6 +114,7 @@ router.post('/purchase', async (req, res) => {
         // Create purchase items for each product in the cart
         const purchaseItems = [];
         for (const [product_id, quantity] of Object.entries(productCounts)) {
+
             // Check if the product exists
             const product = await prisma.product.findUnique({
                 where: { product_id: parseInt(product_id) },

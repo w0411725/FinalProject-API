@@ -16,15 +16,15 @@ const prisma = new PrismaClient({
 // User signup route
 router.post('/signup', async (req, res) => {
     const { email, password, first_name, last_name } = req.body;
-
-    const passwordRules = passwordSchema.validate(password, {
-      list: true 
-    });
   
     // Validate input: Ensure no fields are blank
     if (!email || !password || !first_name || !last_name) {
       return res.status(400).json({ error: 'All fields are required' });
     }
+
+    const passwordRules = passwordSchema.validate(password, {
+      list: true 
+    });
   
     try {
       // Check if email already exists

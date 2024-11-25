@@ -11,9 +11,11 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(express.static('public'));
+
 app.use(cors({
     credentials: true //allow cookies
 }))
+
 app.use(session({
     secret:'gndoa#@ghiozaejhfr^&ea',
     resave: false,

@@ -42,9 +42,6 @@ model Purchase {
   credit_card  String
   credit_expire String
   credit_cvv   String
-  invoice_amt  Float
-  invoice_tax  Float
-  invoice_total Float
   order_date   DateTime  @default(now())
   Customer     Customer  @relation(fields: [customer_id], references: [customer_id])
   PurchaseItem PurchaseItem[]
